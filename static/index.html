@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Intent Analyzer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "background": "var(--background)",
+        "surface": "var(--surface)",
+        "surface-container": "var(--surface-container)",
+        "surface-container-low": "var(--surface-container-low)",
+        "surface-container-high": "var(--surface-container-high)",
+        "surface-container-highest": "var(--surface-container-highest)",
+        "on-surface": "var(--on-surface)",
+        "on-surface-variant": "var(--on-surface-variant)",
+        "outline": "var(--outline)",
+        "outline-variant": "var(--outline-variant)",
+        "primary": "var(--primary)",
+        "primary-container": "var(--primary-container)",
+        "on-primary": "var(--on-primary)",
+        "secondary": "var(--secondary)",
+        "secondary-container": "var(--secondary-container)",
+        "tertiary": "var(--tertiary)",
+        "tertiary-container": "var(--tertiary-container)",
+        "error": "var(--error)",
+        "error-container": "var(--error-container)",
+        "card": "var(--card)",
+        "card-border": "var(--card-border)",
+        "card-hover": "var(--card-hover)",
+        "interactive-border": "var(--interactive-border)",
+      },
+      fontFamily: {
+        sans: ["Inter"],
+        mono: ["JetBrains Mono"],
+      },
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="/static/css/theme.css"/>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex">
+
+<!-- Sidebar Overlay (mobile) -->
+<div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar" class="fixed left-0 top-0 h-full w-[240px] bg-surface-container border-r border-outline-variant flex flex-col py-6 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0">
+  <div class="px-4 mb-4">
+    <div class="text-2xl font-bold text-primary flex items-center gap-2">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">radar</span>
+      Intent Analyzer
+    </div>
+    <div class="text-[13px] text-on-surface-variant mt-2 px-2">Agent Intelligence</div>
+  </div>
+
+  <!-- Project Selector -->
+  <div class="px-3 mb-4">
+    <label class="text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold px-1 mb-1 block">Project</label>
+    <div class="flex gap-1">
+      <select id="project-selector" class="flex-1 bg-surface-container-high border border-outline-variant rounded px-2 py-1.5 text-[13px] text-on-surface focus:border-primary focus:ring-0 truncate" onchange="switchProject(this.value)">
+        <option value="" disabled>No projects</option>
+      </select>
+      <button class="p-1.5 text-on-surface-variant hover:text-primary border border-outline-variant rounded hover:border-primary transition-colors" onclick="showCreateProject()" title="New Project">
+        <span class="material-symbols-outlined text-[18px]">add</span>
+      </button>
+      <button class="p-1.5 text-on-surface-variant hover:text-primary border border-outline-variant rounded hover:border-primary transition-colors" onclick="navigate('projects')" title="Manage Projects">
+        <span class="material-symbols-outlined text-[18px]">folder_managed</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-y-auto" id="nav-links">
+    <a class="nav-link active flex items-center gap-4 px-4 py-2 text-sm cursor-pointer hover:bg-surface-container-high transition-colors" data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+    </a>
+    <div class="border-t border-outline-variant/30 mx-4 my-2"></div>
+    <div class="px-4 pb-1"><span class="text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant/60">Data</span></div>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="upload" onclick="navigate('upload')">
+      <span class="material-symbols-outlined text-[20px]">upload_file</span> Upload & Parse
+    </a>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="results" onclick="navigate('results')">
+      <span class="material-symbols-outlined text-[20px]">analytics</span> Extraction Results
+    </a>
+    <div class="border-t border-outline-variant/30 mx-4 my-2"></div>
+    <div class="px-4 pb-1"><span class="text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant/60">Analytics</span></div>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="intents" onclick="navigate('intents')">
+      <span class="material-symbols-outlined text-[20px]">radar</span> Intent Overview
+    </a>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="satisfaction" onclick="navigate('satisfaction')">
+      <span class="material-symbols-outlined text-[20px]">sentiment_satisfied</span> Satisfaction Analysis
+    </a>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="skills" onclick="navigate('skills')">
+      <span class="material-symbols-outlined text-[20px]">psychology</span> Skills Intelligence
+    </a>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="skills-gap" onclick="navigate('skills-gap')">
+      <span class="material-symbols-outlined text-[20px]">add_circle</span> Skills Gap
+    </a>
+    <div class="border-t border-outline-variant/30 mx-4 my-2"></div>
+    <div class="px-4 pb-1"><span class="text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant/60">Explore</span></div>
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="explorer" onclick="navigate('explorer')">
+      <span class="material-symbols-outlined text-[20px]">database</span> Raw Explorer
+    </a>
+  </div>
+  <div class="mt-auto px-1">
+    <a class="nav-link flex items-center gap-4 px-4 py-2 text-sm cursor-pointer text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-page="settings" onclick="navigate('settings')">
+      <span class="material-symbols-outlined text-[20px]">settings</span> Settings
+    </a>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="flex-1 flex flex-col ml-0 lg:ml-[240px] min-h-screen">
+  <!-- Top Bar -->
+  <header class="bg-background border-b border-outline-variant flex justify-between items-center h-16 px-4 lg:px-6 sticky top-0 z-10">
+    <button class="lg:hidden p-2 text-on-surface-variant hover:text-primary transition-colors rounded hover:bg-surface-container-high mr-2" onclick="toggleSidebar()" title="Toggle menu">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <div class="flex-1"></div>
+    <div class="flex items-center gap-3">
+      <div class="relative w-64">
+        <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+        <input class="w-full bg-surface-container border border-outline-variant rounded pl-9 pr-2 py-2 text-[13px] text-on-surface focus:border-primary focus:ring-0 placeholder:text-on-surface-variant/50" placeholder="Search traces..." type="text" id="global-search" onkeydown="if(event.key==='Enter'){navigateToSearch(this.value)}"/>
+      </div>
+      <button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded hover:bg-surface-container-high" onclick="toggleTheme()" title="Toggle theme" id="theme-toggle">
+        <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="flex-1 p-4 lg:p-8 max-w-[1440px] w-full mx-auto">
+
+    <!-- ==================== DASHBOARD PAGE ==================== -->
+    <div class="page active" id="page-dashboard">
+      <div class="mb-8">
+        <h1 class="text-[32px] font-semibold tracking-tight">Dashboard</h1>
+        <p class="text-[14px] text-on-surface-variant mt-2">Overview of intent analysis performance and key metrics.</p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="dash-kpis">
+        <div class="bg-card border border-card-border rounded-lg p-5 border-l-4 border-l-primary-container">
+          <div class="text-[12px] text-on-surface-variant mb-1">Total Traces</div>
+          <div class="text-[28px] font-bold font-mono text-on-surface" id="dash-total-traces">--</div>
+          <div class="text-[11px] text-on-surface-variant mt-1" id="dash-total-traces-ctx"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded-lg p-5 border-l-4 border-l-[#4caf50]">
+          <div class="text-[12px] text-on-surface-variant mb-1">Mean Satisfaction</div>
+          <div class="text-[28px] font-bold font-mono" id="dash-mean-sat">--</div>
+          <div class="text-[11px] text-on-surface-variant mt-1" id="dash-mean-sat-ctx"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded-lg p-5 border-l-4 border-l-tertiary">
+          <div class="text-[12px] text-on-surface-variant mb-1">Goal Achievement</div>
+          <div class="text-[28px] font-bold font-mono text-tertiary" id="dash-goal-rate">--</div>
+          <div class="text-[11px] text-on-surface-variant mt-1" id="dash-goal-ctx"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded-lg p-5 border-l-4 border-l-primary">
+          <div class="text-[12px] text-on-surface-variant mb-1">Intent Categories</div>
+          <div class="text-[28px] font-bold font-mono text-primary" id="dash-categories">--</div>
+          <div class="text-[11px] text-on-surface-variant mt-1" id="dash-categories-ctx"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-card border border-card-border rounded-lg p-5">
+          <h3 class="text-[14px] font-semibold mb-3">Intent Distribution</h3>
+          <div id="dash-intent-chart" class="min-h-[280px]"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded-lg p-5">
+          <h3 class="text-[14px] font-semibold mb-3">Satisfaction Distribution</h3>
+          <div id="dash-sat-chart" class="min-h-[280px]"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a onclick="navigate('upload')" class="bg-card border border-card-border rounded-lg p-5 hover:border-primary transition-colors cursor-pointer group">
+          <span class="material-symbols-outlined text-[28px] text-primary mb-2 group-hover:scale-110 transition-transform">upload_file</span>
+          <h4 class="text-[14px] font-semibold mb-1">Upload Traces</h4>
+          <p class="text-[12px] text-on-surface-variant">Import raw interaction logs for analysis.</p>
+        </a>
+        <a onclick="navigate('results')" class="bg-card border border-card-border rounded-lg p-5 hover:border-primary transition-colors cursor-pointer group">
+          <span class="material-symbols-outlined text-[28px] text-tertiary mb-2 group-hover:scale-110 transition-transform">play_circle</span>
+          <h4 class="text-[14px] font-semibold mb-1">View Results</h4>
+          <p class="text-[12px] text-on-surface-variant">Browse extraction results and trace details.</p>
+        </a>
+        <a onclick="navigate('skills')" class="bg-card border border-card-border rounded-lg p-5 hover:border-primary transition-colors cursor-pointer group">
+          <span class="material-symbols-outlined text-[28px] text-[#4caf50] mb-2 group-hover:scale-110 transition-transform">psychology</span>
+          <h4 class="text-[14px] font-semibold mb-1">Skills Intelligence</h4>
+          <p class="text-[12px] text-on-surface-variant">Analyze skill activations and relevance.</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- ==================== UPLOAD PAGE ==================== -->
+    <div class="page" id="page-upload">
+      <div class="mb-8">
+        <h1 class="text-[32px] font-semibold tracking-tight">Upload & Parse Traces</h1>
+        <p class="text-[14px] text-on-surface-variant mt-2">Import raw interaction logs to begin intent extraction and analysis.</p>
+      </div>
+
+      <div class="flex border-b border-outline-variant mb-6">
+        <button class="upload-tab active px-5 py-2.5 text-[13px] font-semibold border-b-2 border-primary text-primary transition-colors" data-tab="file" onclick="switchUploadTab('file')">
+          <span class="material-symbols-outlined text-[16px] align-middle mr-1">upload_file</span>File Upload
+        </button>
+        <button class="upload-tab px-5 py-2.5 text-[13px] font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors" data-tab="langfuse" onclick="switchUploadTab('langfuse')">
+          <span class="material-symbols-outlined text-[16px] align-middle mr-1">cloud_download</span>Langfuse Import
+        </button>
+        <button class="upload-tab px-5 py-2.5 text-[13px] font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors" data-tab="langsmith" onclick="switchUploadTab('langsmith')">
+          <span class="material-symbols-outlined text-[16px] align-middle mr-1">hub</span>LangSmith Import
+        </button>
+      </div>
+
+      <div class="upload-panel" data-panel="file">
+      <div class="bg-card border-2 border-dashed border-card-border rounded-lg p-12 flex flex-col items-center justify-center text-center hover:border-primary transition-colors cursor-pointer group" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" multiple accept=".xlsx,.xls,.csv,.tsv,.json,.jsonl,.txt" class="hidden" onchange="handleFileUpload(this.files)"/>
+        <div class="bg-card-hover w-16 h-16 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors">
+          <span class="material-symbols-outlined text-primary text-[32px]">upload</span>
+        </div>
+        <h3 class="text-[20px] font-semibold mb-1">Drop trace files here or click to browse</h3>
+        <p class="text-[13px] text-on-surface-variant mb-4">Supported formats: .xlsx, .csv, .json, .jsonl, .txt</p>
+        <button class="bg-card-hover border border-interactive-border text-on-surface px-6 py-2 rounded text-[14px] hover:border-primary transition-colors" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Select Files</button>
+      </div>
+
+      <div class="mt-8 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-[20px] font-semibold">Staged Files (<span id="staged-count">0</span>)</h2>
+          <button class="bg-primary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90 transition-colors flex items-center gap-1" onclick="parseAll()">
+            <span class="material-symbols-outlined text-[20px]">play_arrow</span> Parse All
+          </button>
+        </div>
+        <div class="bg-card border border-card-border rounded overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-card-hover border-b border-card-border">
+                <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold">Filename</th>
+                <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold">Size</th>
+                <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold">Rows</th>
+                <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="staged-table" class="font-mono text-[12px]"></tbody>
+          </table>
+        </div>
+      </div>
+
+      </div><!-- end file panel -->
+
+      <div class="upload-panel hidden" data-panel="langfuse">
+      <div class="mt-0">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="material-symbols-outlined text-primary text-[28px]">cloud_download</span>
+          <div>
+            <h2 class="text-[20px] font-semibold">Import from Langfuse API</h2>
+            <p class="text-[13px] text-on-surface-variant">Fetch traces directly from your Langfuse project.</p>
+          </div>
+          <span id="langfuse-status-badge" class="ml-auto text-[12px] px-2 py-0.5 rounded font-semibold bg-red-900/30 text-error">Not Connected</span>
+        </div>
+
+        <div class="bg-card border border-card-border rounded-lg p-6">
+          <div class="grid grid-cols-3 gap-4 mb-4">
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Limit</label>
+              <input type="number" id="lf-limit" value="50" min="1" max="500" class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+            </div>
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">User ID (optional)</label>
+              <input type="text" id="lf-user-id" placeholder="Filter by user..." class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+            </div>
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Session ID (optional)</label>
+              <input type="text" id="lf-session-id" placeholder="Filter by session..." class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-4 mb-4">
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Trace Name (optional)</label>
+              <input type="text" id="lf-name" placeholder="Filter by name..." class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+            </div>
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Tags (comma-separated)</label>
+              <input type="text" id="lf-tags" placeholder="tag1, tag2..." class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+            </div>
+            <div class="flex items-end">
+              <button id="lf-fetch-btn" class="w-full bg-primary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90 transition-colors flex items-center justify-center gap-2" onclick="fetchFromLangfuse()">
+                <span class="material-symbols-outlined text-[20px]">cloud_download</span> Fetch Traces
+              </button>
+            </div>
+          </div>
+          <div id="lf-result" class="hidden mt-4 p-3 rounded text-[13px]"></div>
+        </div>
+      </div>
+
+      </div><!-- end langfuse panel -->
+
+      <div class="upload-panel hidden" data-panel="langsmith">
+      <div class="mt-0">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="material-symbols-outlined text-tertiary text-[28px]">hub</span>
+          <div>
+            <h2 class="text-[20px] font-semibold">Import from LangSmith</h2>
+            <p class="text-[13px] text-on-surface-variant">Fetch runs directly from your LangSmith project.</p>
+          </div>
+          <span id="langsmith-status-badge" class="ml-auto text-[12px] px-2 py-0.5 rounded font-semibold bg-red-900/30 text-error">Not Connected</span>
+        </div>
+
+        <div class="bg-card border border-card-border rounded-lg p-6">
+          <div class="grid grid-cols-3 gap-4 mb-4">
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Project Name</label>
+              <div class="flex gap-2">
+                <input type="text" id="ls-project-name" placeholder="e.g. default" class="flex-1 bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+                <button class="px-3 py-2 border border-outline-variant rounded text-[13px] text-on-surface-variant hover:border-primary hover:text-primary transition-colors" onclick="loadLangSmithProjects()" title="Load projects">
+                  <span class="material-symbols-outlined text-[18px]">refresh</span>
+                </button>
+              </div>
+              <select id="ls-project-select" class="w-full mt-1 bg-background border border-outline-variant rounded px-3 py-1.5 text-[13px] font-mono text-on-surface-variant focus:border-primary focus:ring-0 hidden" onchange="document.getElementById('ls-project-name').value = this.value">
+              </select>
+            </div>
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Limit</label>
+              <input type="number" id="ls-limit" value="50" min="1" max="500" class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0"/>
+            </div>
+            <div>
+              <label class="block text-[13px] text-on-surface-variant mb-1">Run Type (optional)</label>
+              <select id="ls-run-type" class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0">
+                <option value="">All types</option>
+                <option value="chain">Chain</option>
+                <option value="llm">LLM</option>
+                <option value="tool">Tool</option>
+                <option value="retriever">Retriever</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 text-[13px] text-on-surface-variant cursor-pointer">
+              <input type="checkbox" id="ls-root-only" checked class="rounded border-outline-variant bg-background text-primary focus:ring-primary"/>
+              Root runs only
+            </label>
+            <button id="ls-fetch-btn" class="bg-tertiary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90 transition-colors flex items-center gap-2" onclick="fetchFromLangSmith()">
+              <span class="material-symbols-outlined text-[20px]">hub</span> Fetch Runs
+            </button>
+          </div>
+          <div id="ls-result" class="hidden mt-4 p-3 rounded text-[13px]"></div>
+        </div>
+      </div>
+
+      </div><!-- end langsmith panel -->
+
+      <div class="mt-8 space-y-4 pt-8 border-t border-card-border" id="parsed-section" style="display:none">
+        <div class="flex items-center justify-between">
+          <h2 class="text-[20px] font-semibold" id="parsed-title">Parsed Traces</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="parsed-cards"></div>
+      </div>
+    </div>
+
+    <!-- ==================== EXTRACTION RESULTS PAGE ==================== -->
+    <div class="page" id="page-results">
+      <div class="mb-6 flex justify-between items-start">
+        <div>
+          <h1 class="text-[32px] font-semibold tracking-tight">Extraction Results</h1>
+          <p class="text-[14px] text-on-surface-variant mt-2">Detailed per-trace intent extractions with satisfaction and skills analysis.</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="bg-red-900/60 text-red-200 px-4 py-2 rounded text-[14px] font-bold hover:bg-red-900 transition flex items-center gap-1" onclick="clearAllData()">
+            <span class="material-symbols-outlined text-[20px]">delete_sweep</span> Clear All
+          </button>
+          <button class="bg-primary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90 transition flex items-center gap-1" onclick="runExtraction()">
+            <span class="material-symbols-outlined text-[20px]">bolt</span> Run Extraction
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="results-kpis">
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-primary">
+          <div class="text-[13px] text-on-surface-variant">Total Traces Processed</div>
+          <div class="text-[24px] font-semibold mt-1" id="kpi-total">0</div>
+          <div class="text-[11px] text-on-surface-variant/60 mt-1" id="kpi-total-ctx"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#ffb869]">
+          <div class="text-[13px] text-on-surface-variant">Mean Satisfaction</div>
+          <div class="text-[24px] font-semibold mt-1" id="kpi-mean-sat">--</div>
+          <div class="text-[11px] text-on-surface-variant/60 mt-1" id="kpi-mean-sat-ctx"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#4caf50]">
+          <div class="text-[13px] text-on-surface-variant">Goal Achievement Rate</div>
+          <div class="text-[24px] font-semibold mt-1" id="kpi-goal">--</div>
+          <div class="text-[11px] text-on-surface-variant/60 mt-1" id="kpi-goal-ctx"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-outline">
+          <div class="text-[13px] text-on-surface-variant">Processing Status</div>
+          <div class="text-[24px] font-semibold mt-1" id="kpi-status">Idle</div>
+        </div>
+      </div>
+
+      <div class="bg-card border border-card-border rounded overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr class="bg-card-hover border-b border-card-border">
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortResults('trace_id')">Trace ID <span class="sort-arrow text-[10px]" data-col="trace_id"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold">Intent Summary</th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortResults('primary_intent')">Primary Intent <span class="sort-arrow text-[10px]" data-col="primary_intent"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortResults('satisfaction_score')">Satisfaction <span class="sort-arrow text-[10px]" data-col="satisfaction_score"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortResults('goal_achieved')">Goal <span class="sort-arrow text-[10px]" data-col="goal_achieved"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortResults('complexity')">Complexity <span class="sort-arrow text-[10px]" data-col="complexity"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold">Skills</th>
+            </tr>
+          </thead>
+          <tbody id="results-table" class="font-mono text-[12px]"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-between items-center mt-4 text-[13px] text-on-surface-variant">
+        <span id="results-showing"></span>
+        <div class="flex items-center gap-3">
+          <select class="bg-surface-container border border-outline-variant rounded px-2 py-1 text-[12px] focus:border-primary focus:ring-0" id="results-per-page" onchange="loadResults(1)">
+            <option value="25">25 / page</option>
+            <option value="50" selected>50 / page</option>
+            <option value="100">100 / page</option>
+          </select>
+          <button class="px-3 py-1 border border-card-border rounded hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed" id="results-prev" onclick="loadResults(resultsPage-1)">Prev</button>
+          <span id="results-page-info" class="text-[12px]"></span>
+          <button class="px-3 py-1 border border-card-border rounded hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed" id="results-next" onclick="loadResults(resultsPage+1)">Next</button>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-card border border-card-border rounded p-6" id="result-detail" style="display:none"></div>
+    </div>
+
+    <!-- ==================== INTENT OVERVIEW PAGE ==================== -->
+    <div class="page" id="page-intents">
+      <div class="mb-6">
+        <h1 class="text-[32px] font-semibold tracking-tight">Intent Overview</h1>
+        <p class="text-[14px] text-on-surface-variant mt-2">Analysis of detected behavioral intents across current dataset.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-tertiary">
+          <div class="text-[13px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">trending_up</span> Top Intent</div>
+          <div class="text-[20px] font-semibold mt-1 font-mono text-tertiary" id="intent-top">--</div>
+          <div class="text-[12px] text-on-surface-variant mt-1" id="intent-top-pct"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-primary">
+          <div class="text-[13px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">category</span> Categories Found</div>
+          <div class="text-[20px] font-semibold mt-1" id="intent-cats">--</div>
+          <div class="text-[12px] text-on-surface-variant mt-1">Distinct intent families</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#ffb4ab]">
+          <div class="text-[13px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">warning</span> Unknown Intent Rate</div>
+          <div class="text-[20px] font-semibold mt-1" id="intent-unknown">--</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Intent Distribution</h3>
+          <div id="intent-dist-chart" class="min-h-[350px]"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Top 8 Intents Overview</h3>
+          <div id="intent-top8-chart" class="min-h-[300px]"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Sub-Intent Hierarchy</h3>
+          <div id="intent-hierarchy"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Intent Satisfaction Density</h3>
+          <div id="intent-sat-density"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SATISFACTION PAGE ==================== -->
+    <div class="page" id="page-satisfaction">
+      <div class="mb-6 flex justify-between items-start">
+        <div>
+          <h1 class="text-[32px] font-semibold tracking-tight">Satisfaction Analysis</h1>
+          <p class="text-[14px] text-on-surface-variant mt-2">Evaluate user sentiment, completion rates, and friction points.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="sat-kpis">
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-primary">
+          <div class="text-[13px] text-on-surface-variant">Mean Satisfaction</div>
+          <div class="text-[24px] font-semibold mt-1" id="sat-mean">--</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#4caf50]">
+          <div class="text-[13px] text-on-surface-variant">Fully Satisfied</div>
+          <div class="text-[24px] font-semibold mt-1 text-[#4caf50]" id="sat-full">--</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#ffb4ab]">
+          <div class="text-[13px] text-on-surface-variant">Low Satisfaction</div>
+          <div class="text-[24px] font-semibold mt-1 text-error" id="sat-low">--</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#ffb869]">
+          <div class="text-[13px] text-on-surface-variant">Avg Clarifications</div>
+          <div class="text-[24px] font-semibold mt-1" id="sat-clarif">--</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Satisfaction Distribution</h3>
+          <div id="sat-histogram" class="min-h-[250px]"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Satisfaction by Intent</h3>
+          <div id="sat-by-intent" class="min-h-[250px]"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Satisfaction by Complexity</h3>
+          <div id="sat-by-complexity" class="min-h-[200px]"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Satisfaction by Expertise</h3>
+          <div id="sat-by-expertise" class="min-h-[200px]"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Sentiment Signals</h3>
+          <div id="sat-signals"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Low Satisfaction Traces (&lt; 0.4)</h3>
+          <div id="sat-low-traces"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SKILLS PAGE ==================== -->
+    <div class="page" id="page-skills">
+      <div class="mb-6">
+        <h1 class="text-[32px] font-semibold tracking-tight">Skills Intelligence</h1>
+        <p class="text-[14px] text-on-surface-variant mt-2">Analysis of skill activation, relevance, and noise across intended operations.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#4caf50]">
+          <div class="text-[13px] text-on-surface-variant flex items-center gap-1">&Sigma; Total Skills Detected</div>
+          <div class="text-[24px] font-semibold mt-1 text-[#4caf50]" id="skills-total">--</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-tertiary">
+          <div class="text-[13px] text-on-surface-variant flex items-center gap-1">~&gt; Most Used Skill</div>
+          <div class="text-[20px] font-semibold mt-1 font-mono text-tertiary" id="skills-most-used">--</div>
+          <div class="text-[12px] text-on-surface-variant mt-1" id="skills-most-used-count"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4 border-l-4 border-l-[#ffb4ab]">
+          <div class="text-[13px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">volume_up</span> Noisiest Skill</div>
+          <div class="text-[20px] font-semibold mt-1 font-mono text-error" id="skills-noisiest">--</div>
+          <div class="text-[12px] text-on-surface-variant mt-1" id="skills-noisiest-info"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="bg-card border border-card-border rounded p-4 lg:col-span-2">
+          <h3 class="text-[14px] font-semibold mb-4">Skills Quadrant</h3>
+          <div id="skills-quadrant" class="min-h-[400px] relative"></div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <h3 class="text-[14px] font-semibold mb-4">Top Skills</h3>
+          <div id="skills-ranking"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== RAW EXPLORER PAGE ==================== -->
+    <div class="page" id="page-explorer">
+      <div class="mb-6 flex justify-between items-start">
+        <div>
+          <h1 class="text-[32px] font-semibold tracking-tight">Raw Explorer</h1>
+          <p class="text-[14px] text-on-surface-variant mt-2">Deep dive into complete trace data, intent classifications, and raw JSON payloads.</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-3 py-1 border border-card-border rounded text-[13px] hover:bg-card-hover" onclick="exportExplorer('csv')">CSV</button>
+          <button class="px-3 py-1 border border-card-border rounded text-[13px] hover:bg-card-hover" onclick="exportExplorer('json')">JSON</button>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mb-4 flex-wrap" id="explorer-filters">
+        <select class="bg-surface-container border border-outline-variant rounded px-3 py-1 text-[13px] focus:border-primary focus:ring-0" id="explorer-intent-filter" onchange="loadExplorer()">
+          <option value="">Intent: All</option>
+        </select>
+        <select class="bg-surface-container border border-outline-variant rounded px-3 py-1 text-[13px] focus:border-primary focus:ring-0" id="explorer-complexity-filter" onchange="loadExplorer()">
+          <option value="">Complexity: All</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <select class="bg-surface-container border border-outline-variant rounded px-3 py-1 text-[13px] focus:border-primary focus:ring-0" id="explorer-goal-filter" onchange="loadExplorer()">
+          <option value="">Goal Achieved: All</option>
+          <option value="true">True</option>
+          <option value="false">False</option>
+        </select>
+      </div>
+
+      <div class="bg-card border border-card-border rounded overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="bg-card-hover border-b border-card-border">
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortExplorer('trace_id')">Trace ID <span class="sort-arrow text-[10px]" data-col="trace_id"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortExplorer('primary_intent')">Primary Intent <span class="sort-arrow text-[10px]" data-col="primary_intent"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortExplorer('complexity')">Complexity <span class="sort-arrow text-[10px]" data-col="complexity"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortExplorer('goal_achieved')">Goal <span class="sort-arrow text-[10px]" data-col="goal_achieved"></span></th>
+              <th class="text-[13px] text-on-surface-variant px-4 py-2 font-semibold cursor-pointer hover:text-on-surface" onclick="sortExplorer('satisfaction_score')">Satisfaction <span class="sort-arrow text-[10px]" data-col="satisfaction_score"></span></th>
+            </tr>
+          </thead>
+          <tbody id="explorer-table" class="font-mono text-[12px]"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-between items-center mt-4 text-[13px] text-on-surface-variant">
+        <span id="explorer-showing"></span>
+        <div class="flex items-center gap-3">
+          <select class="bg-surface-container border border-outline-variant rounded px-2 py-1 text-[12px] focus:border-primary focus:ring-0" id="explorer-per-page" onchange="loadExplorer(1)">
+            <option value="25">25 / page</option>
+            <option value="50" selected>50 / page</option>
+            <option value="100">100 / page</option>
+          </select>
+          <button class="px-3 py-1 border border-card-border rounded hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed" id="explorer-prev" onclick="loadExplorer(explorerPage-1)">Prev</button>
+          <span id="explorer-page-info" class="text-[12px]"></span>
+          <button class="px-3 py-1 border border-card-border rounded hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed" id="explorer-next" onclick="loadExplorer(explorerPage+1)">Next</button>
+        </div>
+      </div>
+      <div class="mt-4 bg-card border border-card-border rounded p-4" id="explorer-detail" style="display:none"></div>
+    </div>
+
+    <!-- ==================== SKILLS GAP PAGE ==================== -->
+    <div class="page" id="page-skills-gap">
+      <div class="mb-6">
+        <h1 class="text-[32px] font-semibold tracking-tight">Skills Gap Analysis</h1>
+        <p class="text-[14px] text-on-surface-variant mt-2">Identify frequent intents that lack matching skills — candidates for new skill creation.</p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-card border border-card-border rounded p-4">
+          <div class="text-[13px] text-on-surface-variant">Total Intents</div>
+          <div class="text-[24px] font-semibold mt-1" id="gap-total-intents">--</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <div class="text-[13px] text-on-surface-variant">Existing Skills</div>
+          <div class="text-[24px] font-semibold mt-1 text-[#4caf50]" id="gap-existing-skills">--</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <div class="text-[13px] text-on-surface-variant">Uncovered Intents</div>
+          <div class="text-[24px] font-semibold mt-1 text-tertiary" id="gap-uncovered">--</div>
+          <div class="text-[11px] text-on-surface-variant mt-1">No skill activated</div>
+        </div>
+        <div class="bg-card border border-card-border rounded p-4">
+          <div class="text-[13px] text-on-surface-variant">Low Relevance Intents</div>
+          <div class="text-[24px] font-semibold mt-1 text-error" id="gap-low-relevance">--</div>
+          <div class="text-[11px] text-on-surface-variant mt-1">Skills don't match (&lt;40%)</div>
+        </div>
+      </div>
+
+      <div class="bg-card border border-card-border rounded p-6 mb-6">
+        <h3 class="text-[18px] font-semibold mb-1">Recommended New Skills</h3>
+        <p class="text-[13px] text-on-surface-variant mb-4">Ranked by gap score — higher score means greater potential impact from creating a new skill.</p>
+        <div id="gap-candidates" class="space-y-4"></div>
+      </div>
+
+      <div class="bg-card border border-card-border rounded p-6">
+        <h3 class="text-[18px] font-semibold mb-1">Skill Coverage by Intent</h3>
+        <p class="text-[13px] text-on-surface-variant mb-4">All intents ranked by frequency, showing current skill coverage levels.</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-card-border">
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold">Intent</th>
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold text-right">Count</th>
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold text-right">Satisfaction</th>
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold text-right">Goal %</th>
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold text-right">Avg Skills</th>
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold text-right">Relevance</th>
+                <th class="text-[13px] text-on-surface-variant px-3 py-2 font-semibold">Coverage</th>
+              </tr>
+            </thead>
+            <tbody id="gap-coverage-table" class="font-mono text-[12px]"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROJECTS PAGE ==================== -->
+    <div class="page" id="page-projects">
+      <div class="mb-6 flex justify-between items-start">
+        <div>
+          <h1 class="text-[32px] font-semibold tracking-tight">Projects</h1>
+          <p class="text-[14px] text-on-surface-variant mt-2">Manage agent projects to evaluate traces separately per agent.</p>
+        </div>
+        <button class="bg-primary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90 transition flex items-center gap-1" onclick="showCreateProject()">
+          <span class="material-symbols-outlined text-[20px]">add</span> New Project
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="projects-grid"></div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="create-project-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+      <div class="bg-surface-container border border-outline-variant rounded-lg p-6 w-[400px]">
+        <h3 class="text-[20px] font-semibold mb-4">Create New Project</h3>
+        <label class="block text-[13px] text-on-surface-variant mb-1">Project Name</label>
+        <input id="new-project-name" class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] focus:border-primary focus:ring-0 mb-4" placeholder="e.g. Customer Support Agent" onkeydown="if(event.key==='Enter')createProject()"/>
+        <div class="flex justify-end gap-2">
+          <button class="px-4 py-2 border border-card-border rounded text-[14px] hover:bg-card-hover" onclick="document.getElementById('create-project-modal').style.display='none'">Cancel</button>
+          <button class="bg-primary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90" onclick="createProject()">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SETTINGS PAGE ==================== -->
+    <div class="page" id="page-settings">
+      <div class="mb-6">
+        <h1 class="text-[32px] font-semibold tracking-tight text-primary">Settings</h1>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-card border border-card-border rounded p-6">
+          <h3 class="text-[20px] font-semibold mb-1">Model Configuration</h3>
+          <p class="text-[13px] text-on-surface-variant mb-4">Manage LLM endpoint and authentication.</p>
+          <label class="block text-[13px] text-on-surface-variant mb-1">Model Name</label>
+          <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono mb-4 focus:border-primary focus:ring-0" id="set-model" value="claude-sonnet-4-6"/>
+          <label class="block text-[13px] text-on-surface-variant mb-1">API Key</label>
+          <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0" id="set-apikey" type="password" placeholder="sk-ant-..."/>
+        </div>
+        <div class="bg-card border border-card-border rounded p-6">
+          <h3 class="text-[20px] font-semibold mb-1">Processing Params</h3>
+          <p class="text-[13px] text-on-surface-variant mb-4">Configure inference limits and behavior.</p>
+          <label class="block text-[13px] text-on-surface-variant mb-1">Concurrency Limit</label>
+          <div class="flex items-center gap-3 mb-4">
+            <input type="range" min="1" max="20" value="5" class="flex-1" id="set-concurrency"/>
+            <span class="text-primary font-semibold w-6 text-right" id="set-concurrency-val">5</span>
+          </div>
+          <label class="block text-[13px] text-on-surface-variant mb-1">Temperature</label>
+          <div class="flex items-center gap-3">
+            <input type="range" min="0" max="10" value="0" class="flex-1" id="set-temperature"/>
+            <span class="text-primary font-semibold w-8 text-right" id="set-temperature-val">0.0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-card border border-card-border rounded p-6 mb-6">
+        <h3 class="text-[20px] font-semibold mb-1">Langfuse Connection</h3>
+        <p class="text-[13px] text-on-surface-variant mb-4">Connect to your Langfuse project for direct API trace import.</p>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Public Key</label>
+            <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0" id="set-lf-public" type="password" placeholder="pk-lf-..."/>
+          </div>
+          <div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Secret Key</label>
+            <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0" id="set-lf-secret" type="password" placeholder="sk-lf-..."/>
+          </div>
+          <div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Host</label>
+            <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0" id="set-lf-host" placeholder="https://cloud.langfuse.com"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-card border border-card-border rounded p-6 mb-6">
+        <h3 class="text-[20px] font-semibold mb-1">LangSmith Connection</h3>
+        <p class="text-[13px] text-on-surface-variant mb-4">Connect to your LangSmith project for direct API run import.</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">API Key</label>
+            <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0" id="set-ls-apikey" type="password" placeholder="lsv2_pt_..."/>
+          </div>
+          <div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Host</label>
+            <input class="w-full bg-background border border-outline-variant rounded px-3 py-2 text-[14px] font-mono focus:border-primary focus:ring-0" id="set-ls-host" placeholder="https://api.smith.langchain.com"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-card border border-card-border rounded p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="text-[20px] font-semibold">Analysis Thresholds</h3>
+            <p class="text-[13px] text-on-surface-variant">Global sensitivity settings for intent categorization.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Satisfaction Threshold</label>
+            <div class="flex items-center gap-3 mb-4">
+              <input type="range" min="0" max="100" value="85" class="flex-1" id="set-sat-thresh"/>
+              <span class="text-tertiary font-semibold w-10 text-right" id="set-sat-thresh-val">0.85</span>
+            </div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Skills Relevance</label>
+            <div class="flex items-center gap-3">
+              <input type="range" min="0" max="100" value="50" class="flex-1" id="set-skills-rel"/>
+              <span class="text-tertiary font-semibold w-10 text-right" id="set-skills-rel-val">0.50</span>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-[14px] font-semibold mb-2">SBERT Vector Distance</h4>
+            <label class="block text-[13px] text-on-surface-variant mb-1">High Confidence Cutoff</label>
+            <div class="flex items-center gap-3 mb-4">
+              <input type="range" min="0" max="100" value="60" class="flex-1" id="set-sbert-high"/>
+              <span class="text-primary font-semibold w-10 text-right" id="set-sbert-high-val">0.60</span>
+            </div>
+            <label class="block text-[13px] text-on-surface-variant mb-1">Low Confidence Warning</label>
+            <div class="flex items-center gap-3">
+              <input type="range" min="0" max="100" value="35" class="flex-1" id="set-sbert-low"/>
+              <span class="text-primary font-semibold w-10 text-right" id="set-sbert-low-val">0.35</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button class="px-6 py-2 border border-card-border rounded text-[14px] hover:bg-card-hover" onclick="loadSettings()">Discard Changes</button>
+        <button class="bg-primary-container text-white px-6 py-2 rounded text-[14px] font-bold hover:opacity-90" onclick="saveSettings()">Apply Configuration</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

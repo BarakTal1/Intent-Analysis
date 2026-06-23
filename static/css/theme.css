@@ -1,0 +1,94 @@
+:root {
+  --background: #101419;
+  --surface: #101419;
+  --surface-container: #1c2026;
+  --surface-container-low: #181c22;
+  --surface-container-high: #272a30;
+  --surface-container-highest: #31353b;
+  --on-surface: #e0e2eb;
+  --on-surface-variant: #c0c7d4;
+  --outline: #8a919e;
+  --outline-variant: #414752;
+  --primary: #a4c9ff;
+  --primary-container: #4a9eff;
+  --on-primary: #00315d;
+  --secondary: #c4c6d2;
+  --secondary-container: #444651;
+  --tertiary: #ffb869;
+  --tertiary-container: #de8800;
+  --error: #ffb4ab;
+  --error-container: #93000a;
+  --card: #1a1d26;
+  --card-border: #2d313e;
+  --card-hover: #242835;
+  --interactive-border: #3f4454;
+}
+
+html.light {
+  --background: #f5f7fa;
+  --surface: #f5f7fa;
+  --surface-container: #ffffff;
+  --surface-container-low: #f0f2f5;
+  --surface-container-high: #e8eaed;
+  --surface-container-highest: #dcdee2;
+  --on-surface: #1a1c20;
+  --on-surface-variant: #44474e;
+  --outline: #74777f;
+  --outline-variant: #c4c6d0;
+  --primary: #1a5fb0;
+  --primary-container: #2d7dd2;
+  --on-primary: #ffffff;
+  --secondary: #5a5c66;
+  --secondary-container: #dfe1ec;
+  --tertiary: #a85f00;
+  --tertiary-container: #c87400;
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --card: #ffffff;
+  --card-border: #dce0e6;
+  --card-hover: #f0f2f5;
+  --interactive-border: #c4c8d0;
+}
+
+body { font-family: 'Inter', sans-serif; }
+.material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; }
+.nav-link.active { color: var(--primary); border-left: 4px solid var(--primary); background: rgba(164,201,255,0.1); font-weight: 700; }
+html.light .nav-link.active { background: rgba(26,95,176,0.1); }
+.nav-link { border-left: 4px solid transparent; }
+[x-cloak] { display: none !important; }
+.page { display: none; }
+.page.active { display: block; }
+.bar { transition: width 0.5s ease; }
+input[type="range"] { -webkit-appearance: none; background: var(--outline-variant); height: 4px; border-radius: 2px; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
+
+.bg-primary\/10 { background-color: rgba(164,201,255,0.1) !important; }
+.bg-primary\/20 { background-color: rgba(164,201,255,0.2) !important; }
+.border-primary\/20 { border-color: rgba(164,201,255,0.2) !important; }
+.bg-error\/10 { background-color: rgba(255,180,171,0.1) !important; }
+.bg-error\/20 { background-color: rgba(255,180,171,0.2) !important; }
+.bg-tertiary\/20 { background-color: rgba(255,184,105,0.2) !important; }
+.bg-tertiary-container\/10 { background-color: rgba(222,136,0,0.1) !important; }
+.border-tertiary-container\/20 { border-color: rgba(222,136,0,0.2) !important; }
+.border-outline-variant\/30 { border-color: rgba(65,71,82,0.3) !important; }
+.text-on-surface-variant\/50 { color: rgba(192,199,212,0.5) !important; }
+.text-on-surface-variant\/60 { color: rgba(192,199,212,0.6) !important; }
+.text-on-surface-variant\/40 { color: rgba(192,199,212,0.4) !important; }
+
+html.light .bg-primary\/10 { background-color: rgba(26,95,176,0.1) !important; }
+html.light .bg-primary\/20 { background-color: rgba(26,95,176,0.2) !important; }
+html.light .border-primary\/20 { border-color: rgba(26,95,176,0.2) !important; }
+html.light .bg-error\/10 { background-color: rgba(186,26,26,0.1) !important; }
+html.light .bg-error\/20 { background-color: rgba(186,26,26,0.2) !important; }
+html.light .bg-tertiary\/20 { background-color: rgba(168,95,0,0.2) !important; }
+html.light .bg-tertiary-container\/10 { background-color: rgba(200,116,0,0.1) !important; }
+html.light .border-tertiary-container\/20 { border-color: rgba(200,116,0,0.2) !important; }
+html.light .border-outline-variant\/30 { border-color: rgba(196,198,208,0.3) !important; }
+html.light .text-on-surface-variant\/50 { color: rgba(68,71,78,0.5) !important; }
+html.light .text-on-surface-variant\/60 { color: rgba(68,71,78,0.6) !important; }
+html.light .text-on-surface-variant\/40 { color: rgba(68,71,78,0.4) !important; }
+
+@media (min-width: 1024px) {
+  #sidebar { transform: translateX(0) !important; }
+  #sidebar-overlay { display: none !important; }
+}
