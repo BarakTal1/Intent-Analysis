@@ -372,7 +372,7 @@ Python's concurrency model. When we `await` an LLM call, the server can handle o
 ## 6. Codebase Structure — File by File
 
 ```
-terra-intent-framework/
+intent-analysis/
 │
 ├── run.py                          # Entry point — starts the Uvicorn server on port 8000
 ├── app.py                          # FastAPI application — all REST API endpoints
