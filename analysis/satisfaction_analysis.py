@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from config import settings
 from extraction.schemas import IntentRepresentation
 
 
@@ -25,7 +26,7 @@ class SatisfactionAnalyzer:
         if not self.results:
             return 0
         return round(
-            sum(1 for r in self.results if r.satisfaction_score >= 0.85)
+            sum(1 for r in self.results if r.satisfaction_score >= settings.satisfaction_threshold)
             / len(self.results)
             * 100,
             1,

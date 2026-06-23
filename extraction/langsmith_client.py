@@ -55,7 +55,7 @@ class LangSmithImporter:
         def _list_runs():
             return list(client.list_runs(**kwargs))
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         runs = await loop.run_in_executor(None, _list_runs)
 
         result: list[TraceData] = []
@@ -79,7 +79,7 @@ class LangSmithImporter:
                 for p in client.list_projects(limit=100)
             ]
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _list_projects)
 
     def _run_to_trace(self, run: dict) -> TraceData:

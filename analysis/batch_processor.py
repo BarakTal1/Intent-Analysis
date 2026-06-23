@@ -105,9 +105,11 @@ class BatchProcessor:
                     )
 
         tasks = [process_one(t) for t in valid]
-        trace_results = await asyncio.gather(*tasks)
+        try:
+            trace_results = await asyncio.gather(*tasks)
+        finally:
+            self.current_run.is_running = False
         self.current_run.results = list(trace_results)
-        self.current_run.is_running = False
         return self.current_run
 
     def save_results(self, path: str | Path) -> None:

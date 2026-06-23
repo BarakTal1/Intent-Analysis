@@ -4,7 +4,6 @@ import asyncio
 import json
 import os
 import shutil
-import tempfile
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -642,8 +641,8 @@ async def get_results(
     if goal_achieved is not None:
         filtered = [r for r in filtered if r.goal_achieved == goal_achieved]
 
-    if sort_by and hasattr(filtered[0] if filtered else object(), sort_by):
-        filtered.sort(key=lambda r: getattr(r, sort_by, None) or "", reverse=(sort_dir == "desc"))
+    if sort_by and filtered and hasattr(filtered[0], sort_by):
+        filtered.sort(key=lambda r: (getattr(r, sort_by, None) is None, getattr(r, sort_by, None)), reverse=(sort_dir == "desc"))
 
     total = len(filtered)
     start = (page - 1) * per_page
