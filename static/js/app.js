@@ -968,12 +968,13 @@ async function fetchFromLangSmith() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    const data = await resp.json();
+    let data;
+    try { data = await resp.json(); } catch { data = {}; }
 
     resultDiv.classList.remove('hidden');
     if (!resp.ok) {
       resultDiv.className = 'mt-4 p-3 rounded text-[13px] bg-red-900/20 text-error border border-red-900/40';
-      resultDiv.textContent = data.detail || 'Failed to fetch runs';
+      resultDiv.textContent = data.detail || `Server error (${resp.status}). Check your LangSmith API key and project name.`;
     } else {
       resultDiv.className = 'mt-4 p-3 rounded text-[13px] bg-green-900/20 text-[#4caf50] border border-green-900/40';
       resultDiv.innerHTML = `Fetched <strong>${data.fetched}</strong> runs from LangSmith — <strong>${data.imported}</strong> imported, <strong>${data.skipped_duplicates}</strong> duplicates skipped. Total traces in project: <strong>${data.total_traces}</strong>`;
