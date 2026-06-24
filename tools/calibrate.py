@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import statistics
 from pathlib import Path
@@ -17,24 +18,39 @@ from pathlib import Path
 
 def load_results(path: Path) -> list[dict]:
     records = []
-    for line in path.read_text().splitlines():
+    for i, line in enumerate(path.read_text().splitlines(), 1):
         line = line.strip()
-        if line:
+        if not line:
+            continue
+        try:
             records.append(json.loads(line))
+        except json.JSONDecodeError:
+            print(f"Warning: skipping malformed JSON on line {i}")
     return records
 
 
 def human_score(record: dict) -> float:
+    trace_id = record.get("trace_id", "unknown")
+    primary_intent = record.get("primary_intent", "unknown")
+    goal_achieved = record.get("goal_achieved", "unknown")
+    intent_summary = record.get("intent_summary", "(no summary)")
+    satisfaction_score = record.get("satisfaction_score")
+
+    if satisfaction_score is None:
+        print(f"\nSkipping trace {trace_id}: missing satisfaction_score")
+        return -1.0
+
     print("\n" + "=" * 60)
-    print(f"Trace: {record['trace_id']}")
-    print(f"Intent: {record['primary_intent']}")
-    print(f"Goal achieved: {record['goal_achieved']}")
-    print(f"Summary: {record['intent_summary']}")
-    if record.get("satisfaction_signals"):
+    print(f"Trace: {trace_id}")
+    print(f"Intent: {primary_intent}")
+    print(f"Goal achieved: {goal_achieved}")
+    print(f"Summary: {intent_summary}")
+    signals = record.get("satisfaction_signals") or []
+    if signals:
         print("Signals:")
-        for s in record["satisfaction_signals"]:
+        for s in signals:
             print(f"  - {s}")
-    print(f"\nClaude score: {record['satisfaction_score']:.2f}")
+    print(f"\nClaude score: {satisfaction_score:.2f}")
     while True:
         raw = input("Your score (0.0 - 1.0, or 's' to skip): ").strip()
         if raw == "s":
@@ -81,11 +97,11 @@ def main() -> None:
     sample = random.sample(all_records, min(args.sample, len(all_records)))
     print(f"\nCalibrating on {len(sample)} traces. Type 's' to skip a trace.\n")
 
-    pairs: list[tuple[float, float]] = []
+    pairs: list[tuple[float, float, str]] = []
     for record in sample:
         h = human_score(record)
         if h >= 0:
-            pairs.append((record["satisfaction_score"], h))
+            pairs.append((record.get("satisfaction_score", 0.0), h, record.get("trace_id", "unknown")))
 
     if len(pairs) < 3:
         print("\nNot enough scores collected (need at least 3). Exiting.")
@@ -94,7 +110,7 @@ def main() -> None:
     claude_scores = [p[0] for p in pairs]
     human_scores_list = [p[1] for p in pairs]
     corr = pearson_correlation(claude_scores, human_scores_list)
-    mae = statistics.mean(abs(c - h) for c, h in pairs)
+    mae = statistics.mean(abs(c - h) for c, h, _ in pairs)
     disagreements = sorted(pairs, key=lambda p: abs(p[0] - p[1]), reverse=True)
 
     print("\n" + "=" * 60)
@@ -104,15 +120,18 @@ def main() -> None:
     print(f"Pearson correlation: {corr:.3f}  (>0.7 = solid, <0.4 = noisy)")
     print(f"Mean absolute error: {mae:.3f}  (<0.15 = solid, >0.25 = noisy)")
     print("\nTop disagreements (Claude → Human):")
-    for claude, human in disagreements[:5]:
-        print(f"  Claude {claude:.2f}  →  Human {human:.2f}  (diff {abs(claude-human):.2f})")
+    for claude, human, tid in disagreements[:5]:
+        print(f"  {tid[:16]:<16}  Claude {claude:.2f}  →  Human {human:.2f}  (diff {abs(claude-human):.2f})")
 
-    if corr >= 0.7 and mae <= 0.15:
-        print("\n✅ Signal looks solid. Gap scores are trustworthy.")
-    elif corr >= 0.5 or mae <= 0.25:
-        print("\n⚠️  Signal is moderate. Gap scores directionally useful but treat with caution.")
+    if math.isnan(corr):
+        print("\n⚠️  Correlation undefined — all scores may be identical. Score more traces with varied quality.")
     else:
-        print("\n❌ Signal is noisy. Consider refining the satisfaction prompt before building on it.")
+        if corr >= 0.7 and mae <= 0.15:
+            print("\n✅ Signal looks solid. Gap scores are trustworthy.")
+        elif corr >= 0.5 or mae <= 0.25:
+            print("\n⚠️  Signal is moderate. Gap scores directionally useful but treat with caution.")
+        else:
+            print("\n❌ Signal is noisy. Consider refining the satisfaction prompt before building on it.")
 
 
 if __name__ == "__main__":
