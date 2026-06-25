@@ -642,7 +642,14 @@ tailwind.config = {
     <!-- ==================== SKILLS GAP PAGE ==================== -->
     <div class="page" id="page-skills-gap">
       <div class="mb-6">
-        <h1 class="text-[32px] font-semibold tracking-tight">Skills Gap Analysis</h1>
+        <div class="flex items-center justify-between">
+          <h1 class="text-[32px] font-semibold tracking-tight">Skills Gap Analysis</h1>
+          <button
+            onclick="exportGapReport()"
+            class="px-3 py-1 border border-card-border rounded text-[13px] hover:bg-card-hover flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px]">download</span> Export Report
+          </button>
+        </div>
         <p class="text-[14px] text-on-surface-variant mt-2">Identify frequent intents that lack matching skills — candidates for new skill creation.</p>
       </div>
 

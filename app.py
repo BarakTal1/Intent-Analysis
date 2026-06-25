@@ -733,6 +733,40 @@ async def skills_gap_overview():
     return analyzer.overview()
 
 
+@app.get("/api/analytics/skills-gap/export")
+async def export_skills_gap():
+    """Return a ranked gap report suitable for download or sharing."""
+    import datetime
+    proj = _get_project()
+    analyzer = SkillsGapAnalyzer(proj.processor.results)
+    candidates = analyzer.gap_candidates()
+    coverage = analyzer.skill_coverage_by_intent()
+
+    report = {
+        "generated_at": datetime.datetime.utcnow().isoformat() + "Z",
+        "total_traces_analyzed": len(proj.processor.results),
+        "top_gaps": [
+            {
+                "rank": i + 1,
+                "intent": c["intent"],
+                "gap_score": c["gap_score"],
+                "frequency_pct": c["frequency_pct"],
+                "trace_count": c["count"],
+                "mean_satisfaction": c["mean_satisfaction"],
+                "goal_achievement_rate": c["goal_achievement_rate"],
+                "avg_skills_per_trace": c["avg_skills_per_trace"],
+                "skill_relevance_rate": c["skill_relevance_rate"],
+                "reasons": c["reasons"],
+                "suggested_skill": c["suggested_skill_name"],
+                "sample_summaries": c["sample_summaries"],
+            }
+            for i, c in enumerate(candidates[:10])
+        ],
+        "full_coverage": coverage,
+    }
+    return report
+
+
 # ---------------------------------------------------------------------------
 # Raw Explorer — combined traces + results for the explorer page
 # ---------------------------------------------------------------------------

@@ -833,6 +833,21 @@ async function exportExplorer(format) {
   }
 }
 
+async function exportGapReport() {
+  try {
+    const resp = await fetch(API + '/api/analytics/skills-gap/export');
+    if (!resp.ok) {
+      alert('No data to export. Run extraction first.');
+      return;
+    }
+    const data = await resp.json();
+    const filename = `gap-report-${new Date().toISOString().slice(0, 10)}.json`;
+    downloadBlob(JSON.stringify(data, null, 2), filename, 'application/json');
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  }
+}
+
 // ============ Langfuse Import ============
 async function checkLangfuseStatus() {
   try {
