@@ -588,6 +588,13 @@ async def run_extraction():
         return {"status": "nothing_new", "total_results": len(proj.processor.results)}
 
     run = await proj.processor.process_traces(new_traces)
+
+    # Merge the newly extracted intents into this project's stable canonical set
+    # (Option C — online clustering) before persisting, so the same intent always
+    # gets the same name across traces and across runs.
+    new_results = [tr.result for tr in run.results if tr.success and tr.result]
+    proj.processor.canonicalize_results(new_results, proj.data_dir / "intent_pool.json")
+
     proj.processor.save_results(proj.results_file)
 
     return {

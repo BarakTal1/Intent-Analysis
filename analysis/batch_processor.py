@@ -39,6 +39,7 @@ class BatchProcessor:
         self.use_sbert = use_sbert
         self._agent: IntentExtractionAgent | None = None
         self._detector: SkillsDetector | None = None
+        self._canonicalizer = None
         self.current_run = BatchRun()
         self._results_store: list[IntentRepresentation] = []
 
@@ -55,6 +56,30 @@ class BatchProcessor:
             from extraction.skills_detector import SkillsDetector
             self._detector = SkillsDetector()
         return self._detector
+
+    @property
+    def canonicalizer(self):
+        if self._canonicalizer is None:
+            from extraction.intent_canonicalizer import IntentCanonicalizer
+            # Reuse the detector's already-loaded SBERT model when available,
+            # so we don't load a second copy into memory.
+            model = self.detector.model if self.use_sbert else None
+            self._canonicalizer = IntentCanonicalizer(
+                threshold=settings.intent_similarity_threshold,
+                model=model,
+            )
+        return self._canonicalizer
+
+    def canonicalize_results(self, new_results, pool_path) -> None:
+        """Merge free-text intents into a stable canonical set (Option C).
+
+        Loads the per-project intent pool, canonicalizes the freshly extracted
+        results against it (mutating primary_intent in place), then persists the
+        updated pool so intent names stay consistent across future runs.
+        """
+        self.canonicalizer.load_pool(pool_path)
+        self.canonicalizer.canonicalize(new_results)
+        self.canonicalizer.save_pool(pool_path)
 
     @property
     def results(self) -> list[IntentRepresentation]:
