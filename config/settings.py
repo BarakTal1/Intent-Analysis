@@ -14,9 +14,6 @@ class Settings:
     model_name: str = "anthropic:claude-sonnet-4-6"
     satisfaction_threshold: float = 0.85
     skills_relevance_threshold: float = 0.5
-    # Cosine-similarity cutoff for merging two intent names into one canonical
-    # intent (Option C — online clustering). Higher = stricter (fewer merges).
-    intent_similarity_threshold: float = 0.72
 
 
 settings = Settings()

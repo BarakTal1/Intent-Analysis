@@ -75,6 +75,7 @@ class IntentExtractionAgent:
             HumanMessage(content=trace_text),
         ])
         result.trace_id = trace.trace_id
+        result.raw_intent = result.primary_intent  # preserve free-form intent pre-canonicalization
         self._fill_sbert_scores(result, sbert_scores)
         return result
 
@@ -90,6 +91,7 @@ class IntentExtractionAgent:
             HumanMessage(content=trace_text),
         ])
         result.trace_id = trace.trace_id
+        result.raw_intent = result.primary_intent  # preserve free-form intent pre-canonicalization
         self._fill_sbert_scores(result, sbert_scores)
         return result
 
