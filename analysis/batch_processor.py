@@ -56,6 +56,70 @@ class BatchProcessor:
             self._detector = SkillsDetector()
         return self._detector
 
+    def _embedder(self):
+        """Reuse the detector's SBERT model when available, else load one."""
+        if self.use_sbert:
+            return self.detector.model
+        from sentence_transformers import SentenceTransformer
+        return SentenceTransformer("all-mpnet-base-v2")
+
+    def assign_intents(self, new_results, all_results, taxonomy_path) -> dict:
+        """Two-phase autonomous classification (discover once, classify cheaply).
+
+        - First run (no taxonomy yet): DISCOVER a finite taxonomy (LLM induction over
+          the extracted intents), then classify every result into it.
+        - Later runs: classify only the NEW results against the stable taxonomy.
+        - Drift: if too many results land in 'unclassified', REBUILD the taxonomy
+          from the preserved raw intents and re-classify everything.
+
+        Classification is borderline-only: confident matches are decided by cheap
+        local embeddings; the LLM is consulted solely for the ambiguous minority.
+        """
+        from analysis.taxonomy_builder import TaxonomyBuilder
+        from extraction.intent_classifier import IntentClassifier, UNCLASSIFIED
+        from extraction.intent_llm import make_inducer, make_decider
+
+        model = self._embedder()
+        embed_many = lambda ts: model.encode(ts, normalize_embeddings=True)
+        embed_one = lambda t: model.encode(t, normalize_embeddings=True)
+
+        def raw_pairs(results):
+            return [(r.raw_intent or r.primary_intent, r.intent_summary) for r in results]
+
+        taxonomy = TaxonomyBuilder.load(taxonomy_path)
+        if not taxonomy:
+            taxonomy = TaxonomyBuilder(embed_many, make_inducer()).build(raw_pairs(all_results))
+            TaxonomyBuilder.save(taxonomy, taxonomy_path)
+            targets = all_results
+        else:
+            targets = new_results
+
+        def classify(results, tax):
+            clf = IntentClassifier(tax, embed_one, make_decider())
+            llm_used = 0
+            for r in results:
+                a = clf.classify(r.raw_intent or r.primary_intent, r.intent_summary)
+                r.primary_intent = a.canonical
+                llm_used += int(a.used_llm)
+            return llm_used
+
+        llm_used = classify(targets, taxonomy)
+
+        # drift: rebuild from original signal if coverage has degraded
+        unclassified = sum(1 for r in all_results if r.primary_intent == UNCLASSIFIED)
+        if all_results and unclassified / len(all_results) > 0.15:
+            taxonomy = TaxonomyBuilder(embed_many, make_inducer()).build(raw_pairs(all_results))
+            TaxonomyBuilder.save(taxonomy, taxonomy_path)
+            llm_used += classify(all_results, taxonomy)
+            unclassified = sum(1 for r in all_results if r.primary_intent == UNCLASSIFIED)
+
+        return {
+            "taxonomy_size": len(taxonomy),
+            "classified": len(targets),
+            "unclassified": unclassified,
+            "llm_calls_used": llm_used,
+        }
+
     @property
     def results(self) -> list[IntentRepresentation]:
         return self._results_store

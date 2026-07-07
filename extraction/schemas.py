@@ -20,6 +20,12 @@ class IntentRepresentation(BaseModel):
     trace_id: str
     intent_summary: str = Field(description="Free-text description of what the user tried to achieve")
     primary_intent: str = Field(description="Canonical intent category")
+    raw_intent: str = Field(
+        default="",
+        description="Internal — leave empty. The extractor stores the original "
+                    "free-form intent here before canonicalization, so the taxonomy "
+                    "can be rebuilt from original signal as the data drifts.",
+    )
     sub_intents: list[str] = Field(default_factory=list)
     goal_achieved: bool = Field(description="Whether the user's goal was met")
     satisfaction_score: float = Field(ge=0.0, le=1.0, description="0-1 satisfaction estimate")

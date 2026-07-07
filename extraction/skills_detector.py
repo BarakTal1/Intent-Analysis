@@ -31,6 +31,13 @@ class SkillsDetector:
     def _model(self) -> SentenceTransformer:
         return SentenceTransformer(self._model_name)
 
+    @property
+    def model(self) -> SentenceTransformer:
+        """Public handle to the loaded SBERT model, so other components
+        (e.g. the intent canonicalizer) can reuse it instead of loading a
+        second copy into memory."""
+        return self._model
+
     def detect_skills(self, trace: TraceData) -> list[str]:
         """Return skill names found in the trace via tool call names and skills_activated."""
         seen: set[str] = set()

@@ -27,3 +27,6 @@ build/
 
 # Misc
 *.log
+
+# Generated evaluation samples
+evaluation/bitext_sample.json

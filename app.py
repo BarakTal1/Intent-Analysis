@@ -588,6 +588,15 @@ async def run_extraction():
         return {"status": "nothing_new", "total_results": len(proj.processor.results)}
 
     run = await proj.processor.process_traces(new_traces)
+
+    # Two-phase autonomous classification: discover a finite intent taxonomy, then
+    # classify results into it (borderline-only LLM). Keeps the split stable and
+    # accurate so the downstream analytics are meaningful.
+    new_results = [tr.result for tr in run.results if tr.success and tr.result]
+    proj.processor.assign_intents(
+        new_results, proj.processor.results, proj.data_dir / "intent_taxonomy.json"
+    )
+
     proj.processor.save_results(proj.results_file)
 
     return {
