@@ -33,9 +33,15 @@ the user's goal is NOT relevant, even if it ran successfully.
 ## Important guidelines
 
 - `trace_id`: copy exactly from the trace header
-- `primary_intent`: short snake_case category derived from the conversation domain \
-(e.g.: data_retrieval, task_automation, content_generation, troubleshooting, \
-research_analysis, general_assistance, unknown)
+- `primary_intent`: a SPECIFIC, snake_case label for the user's concrete goal — \
+name the actual action + object, not a broad functional bucket. \
+Prefer `cancel_order`, `check_invoice`, `recover_password`, `change_shipping_address`, \
+`track_refund` over vague categories. \
+DO NOT use generic catch-alls like `general_assistance`, `information_retrieval`, \
+`data_retrieval`, `account_management`, `task_automation`, or `troubleshooting` when a \
+more specific intent is identifiable — those hide the real intent and are almost never \
+the right answer. Use `unknown` ONLY when the goal genuinely cannot be determined. \
+Two conversations with the same underlying goal must get the same label.
 - `complexity`: low = single tool call; medium = multi-step; high = complex multi-tool chain
 - `user_expertise`: infer from language sophistication and domain knowledge shown
 - `clarifications_needed`: count how many times the user had to re-explain or restate their request
@@ -61,10 +67,11 @@ class IntentExtractionAgent:
         self,
         trace: TraceData,
         sbert_scores: dict[str, float] | None = None,
+        allowed_intents: list[str] | None = None,
     ) -> IntentRepresentation:
         trace_text = self._format_trace(trace, sbert_scores)
         result: IntentRepresentation = self.chain.invoke([
-            SystemMessage(content=INTENT_EXTRACTION_PROMPT),
+            SystemMessage(content=self._system_content(allowed_intents)),
             HumanMessage(content=trace_text),
         ])
         result.trace_id = trace.trace_id
@@ -75,15 +82,32 @@ class IntentExtractionAgent:
         self,
         trace: TraceData,
         sbert_scores: dict[str, float] | None = None,
+        allowed_intents: list[str] | None = None,
     ) -> IntentRepresentation:
         trace_text = self._format_trace(trace, sbert_scores)
         result: IntentRepresentation = await self.chain.ainvoke([
-            SystemMessage(content=INTENT_EXTRACTION_PROMPT),
+            SystemMessage(content=self._system_content(allowed_intents)),
             HumanMessage(content=trace_text),
         ])
         result.trace_id = trace.trace_id
         self._fill_sbert_scores(result, sbert_scores)
         return result
+
+    @staticmethod
+    def _system_content(allowed_intents: list[str] | None) -> str:
+        """Base prompt, plus a taxonomy constraint when the caller supplies a
+        fixed menu of intents (classify-into-taxonomy mode). Without a menu the
+        model discovers intents freely (discovery mode)."""
+        if not allowed_intents:
+            return INTENT_EXTRACTION_PROMPT
+        menu = ", ".join(allowed_intents)
+        return INTENT_EXTRACTION_PROMPT + (
+            "\n\n## Fixed intent taxonomy\n"
+            "You MUST set `primary_intent` to exactly one of these labels, copied "
+            "verbatim (do not invent new labels or rephrase):\n"
+            f"{menu}\n"
+            "Pick the single best-fitting label. Use `unknown` only if none apply."
+        )
 
     def _format_trace(self, trace: TraceData, sbert_scores: dict[str, float] | None) -> str:
         parts = [f"# Trace: {trace.trace_id}"]
